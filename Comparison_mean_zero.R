@@ -56,9 +56,9 @@ M <- function(x, t){
 
 K <- function(x, gam){
   n = length(x)
-  k_t = rep(NULL, n)
-  for (i in 1:n){
-    k_t[i] = M(x, i)/((i/n)*(1-i/n))^gam
+  k_t = rep(NULL, (n-1))
+  for (i in 1:(n-1)){
+    k_t[i] = M(x, i)/((i/(n-1))*(1-i/(n-1)))^gam
   }
   which.min(k_t)
 }
@@ -78,15 +78,6 @@ textbook <- function(d){
   }
   max(abs(M_t))
 }
-
-#Testing of code
-k = K(d, 1/3)
-v = V_k(k, d)
-M_t <- rep(NULL, n)
-for (i in 1:(n-1)){
-  M_t[i] = M(d, i) / sqrt(v)
-}
-ts.plot(M_t)
 
 ###-----------------------------------------------
 ### Liver Method
@@ -159,10 +150,10 @@ if(1){
   n = 400
   n_sim = 200
   delta = seq(from = 0, to = 1, by = 0.1)
-  out = array(NA, dim =c(n_sim, length(delta), 3),
+  out = array(NA, dim =c(n_sim, length(delta), 4),
               dimnames = list(paste0('isim=',1:n_sim),
                               paste0('delta=', delta),
-                              c('liver', 'textbook','self')))
+                              c('liver', 'textbook','log(d^2)','d^2')))
   for(i_sim in 1:n_sim){
     set.seed(i_sim)
     for(i_delta in 1:length(delta)){
@@ -175,6 +166,7 @@ if(1){
       out[i_sim, i_delta, 1] = spline_test(x)
       out[i_sim, i_delta, 2] = textbook(x)
       out[i_sim, i_delta, 3] = KS_std(log(d^2))
+      out[i_sim, i_delta, 4] = KS_std(d^2)
     }
     if(i_sim%%10==0) cat(i_sim, ' >> ')
   }
@@ -187,6 +179,7 @@ out0 = out*0
 out0[,,1] = out[,,1] > -log(-log(1-0.05)/2)
 out0[,,2] = out[,,2] > 1.358
 out0[,,3] = out[,,3] > 1.358
+out0[,,4] = out[,,4] > 1.358
 power = apply(out0, c(2,3), mean)
 power
 
@@ -194,14 +187,14 @@ power
 ### Plot results
 ###-----------------------------------------------------------
 par(mfrow = c(1, 2))
-col = c('blue','red', 'darkgreen')
+col = c('blue','red', 'darkgreen','lightgreen')
 #Plot 1
 matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
         ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
-legend(0.7, 25, legend = c('Liver', 'Textbook','self'), col = c('blue','red','darkgreen'), 
-       lty = c(1,2,3), cex = 0.6)
+legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
+  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.4)
 
 #Plot 2
 matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
@@ -209,4 +202,5 @@ matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in
         xlim = c(0, 0.2))
 abline(h = c(0:5), lwd = 0.5, lty = 3)
 abline(v = 0, lwd = 0.5, lty = 2)
+
 
