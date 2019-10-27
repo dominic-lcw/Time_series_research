@@ -70,7 +70,7 @@ V_k <- function(k, x){
 }
 
 textbook <- function(d){
-  k = K(d, 1/3)
+  k = K(d, 0)
   v = V_k(k, d)
   M_t <- rep(NULL, n)
   for (i in 1:(n-1)){
@@ -149,10 +149,16 @@ spline_test = function(x){
 ### Simulation Part
 ###-----------------------------------------------
 
+del = 0.3
+mu = 0
+z = c(rt(n/2,6), rt(n/2, 6)*(1+del))#random
+x = z+mu
+d = diff(x)/sqrt(2)
+
 if(1){
-  n = 500
-  n_sim = 1000
-  delta = seq(from = 0, to = 1, by = 0.05)
+  n = 400
+  n_sim = 200
+  delta = seq(from = 0, to = 1, by = 0.1)
   out = array(NA, dim =c(n_sim, length(delta), 3),
               dimnames = list(paste0('isim=',1:n_sim),
                               paste0('delta=', delta),
@@ -161,12 +167,13 @@ if(1){
     set.seed(i_sim)
     for(i_delta in 1:length(delta)){
       del = delta[i_delta]
-      mu = f((1:n/n))
-      z = c(rt(n/2,6), rt(n/2, 6)*(1+del))
+      mu = 0
+      #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
+      z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
-      out[i_sim, i_delta, 2] = textbook(d)
+      out[i_sim, i_delta, 2] = textbook(x)
       out[i_sim, i_delta, 3] = KS_std(log(d^2))
     }
     if(i_sim%%10==0) cat(i_sim, ' >> ')
@@ -189,11 +196,12 @@ power
 par(mfrow = c(1, 2))
 col = c('blue','red', 'darkgreen')
 #Plot 1
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power", ylim = c(0, 100),
+matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
         ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
-legend(0.75, 20, legend = c('Liver', 'Textbook','self'), col = c('blue','red','darkgreen'), lty = c(1,2,3), cex = 0.5)
+legend(0.7, 25, legend = c('Liver', 'Textbook','self'), col = c('blue','red','darkgreen'), 
+       lty = c(1,2,3), cex = 0.6)
 
 #Plot 2
 matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",

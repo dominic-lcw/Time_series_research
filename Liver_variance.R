@@ -16,7 +16,7 @@ n = 1000
 mu = f((1:n)/n)
 z = c(rt(n/2,3), rt(n/2, 3)*4) 
 x = z+mu
-par(mfrow = c(1, 1))
+par(mfrow = c(2,1))
 ts.plot(x)
 d = diff(x) / (sqrt(2))
 ts.plot(d)
