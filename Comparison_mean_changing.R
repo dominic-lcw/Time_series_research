@@ -14,7 +14,7 @@ ar = function(n, ar, df){
 }
 n = 1000
 mu = f((1:n)/n)
-z = c(rt(n/2,3), rt(n/2, 3)) 
+z = c(rt(n/2,3), rt(n/2, 3)*4) 
 x = z+mu
 par(mfrow = c(1, 1))
 ts.plot(x)
@@ -149,7 +149,7 @@ d = diff(x)/sqrt(2)
 if(1){
   n = 400
   n_sim = 200
-  delta = seq(from = 0, to = 1, by = 0.1)
+  delta = seq(from = 0, to = 5, by = 0.5)
   out = array(NA, dim =c(n_sim, length(delta), 4),
               dimnames = list(paste0('isim=',1:n_sim),
                               paste0('delta=', delta),
@@ -158,9 +158,9 @@ if(1){
     set.seed(i_sim)
     for(i_delta in 1:length(delta)){
       del = delta[i_delta]
-      mu = 0
-      #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
+      mu = f((1:n)/n)
+      z = c(rt(n/2,6), rt(n/2, 6)*(1+del))#random
+      #z = c(rnorm(n/2,1)*2,rnorm(n/2,1)*(2-del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
