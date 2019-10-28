@@ -137,19 +137,13 @@ spline_test = function(x){
   return(Liver_test(new_d, 0.05))
 }
 ###-----------------------------------------------
-### Simulation Part
+### Normal Case.
 ###-----------------------------------------------
-
-del = 0.3
-mu = 0
-z = c(rt(n/2,6), rt(n/2, 6)*(1+del))#random
-x = z+mu
-d = diff(x)/sqrt(2)
 
 if(1){
   n = 400
   n_sim = 200
-  delta = seq(from = 0, to = 1, by = 0.1)
+  delta = seq(from = 0, to = 3, length.out = 21)
   out = array(NA, dim =c(n_sim, length(delta), 4),
               dimnames = list(paste0('isim=',1:n_sim),
                               paste0('delta=', delta),
@@ -161,6 +155,128 @@ if(1){
       mu = 0
       #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
       z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
+      x = z+mu
+      d = diff(x)/sqrt(2)
+      out[i_sim, i_delta, 1] = spline_test(x)
+      out[i_sim, i_delta, 2] = textbook(x)
+      out[i_sim, i_delta, 3] = KS_std(log(d^2))
+      out[i_sim, i_delta, 4] = KS_std(d^2)
+    }
+    if(i_sim%%10==0) cat(i_sim, ' >> ')
+  }
+}
+
+###-----------------------------------------------------------
+### Power
+###-----------------------------------------------------------
+out0 = out*0
+out0[,,1] = out[,,1] > -log(-log(1-0.05)/2)
+out0[,,2] = out[,,2] > 1.358
+out0[,,3] = out[,,3] > 1.358
+out0[,,4] = out[,,4] > 1.358
+power = apply(out0, c(2,3), mean)
+power
+
+###-----------------------------------------------------------
+### Plot results
+###-----------------------------------------------------------
+par(mfrow = c(1, 2))
+col = c('blue','red', 'darkgreen','lightgreen')
+#Plot 1
+matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
+        ylab = expression(K(delta)~"/%"), xlab = expression(delta))
+abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
+abline(v = 0, lwd = 0.5, lty = 2)
+legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
+  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.4)
+
+#Plot 2
+matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
+        ylim = c(0, 0.5) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
+        xlim = c(0, 0.2))
+abline(h = c(0:5), lwd = 0.5, lty = 3)
+abline(v = 0, lwd = 0.5, lty = 2)
+
+###-----------------------------------------------
+### Changing Mean
+###-----------------------------------------------
+
+if(1){
+  n = 400
+  n_sim = 200
+  delta = seq(from = 0, to = 3, length.out = 21)
+  out = array(NA, dim =c(n_sim, length(delta), 4),
+              dimnames = list(paste0('isim=',1:n_sim),
+                              paste0('delta=', delta),
+                              c('liver', 'textbook','log(d^2)','d^2')))
+  for(i_sim in 1:n_sim){
+    set.seed(i_sim)
+    for(i_delta in 1:length(delta)){
+      del = delta[i_delta]
+      mu = f((1:n)/n)
+      #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
+      z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
+      x = z+mu
+      d = diff(x)/sqrt(2)
+      out[i_sim, i_delta, 1] = spline_test(x)
+      out[i_sim, i_delta, 2] = textbook(x)
+      out[i_sim, i_delta, 3] = KS_std(log(d^2))
+      out[i_sim, i_delta, 4] = KS_std(d^2)
+    }
+    if(i_sim%%10==0) cat(i_sim, ' >> ')
+  }
+}
+
+###-----------------------------------------------------------
+### Power
+###-----------------------------------------------------------
+out0 = out*0
+out0[,,1] = out[,,1] > -log(-log(1-0.05)/2)
+out0[,,2] = out[,,2] > 1.358
+out0[,,3] = out[,,3] > 1.358
+out0[,,4] = out[,,4] > 1.358
+power = apply(out0, c(2,3), mean)
+power
+
+###-----------------------------------------------------------
+### Plot results
+###-----------------------------------------------------------
+par(mfrow = c(1, 2))
+col = c('blue','red', 'darkgreen','lightgreen')
+#Plot 1
+matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
+        ylab = expression(K(delta)~"/%"), xlab = expression(delta))
+abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
+abline(v = 0, lwd = 0.5, lty = 2)
+legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
+  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.4)
+
+#Plot 2
+matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
+        ylim = c(0, 0.5) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
+        xlim = c(0, 0.2))
+abline(h = c(0:5), lwd = 0.5, lty = 3)
+abline(v = 0, lwd = 0.5, lty = 2)
+
+###-----------------------------------------------
+### Early Change Point
+###-----------------------------------------------
+
+if(1){
+  n = 400
+  n_sim = 200
+  delta = seq(from = 0, to = 3, length.out = 21)
+  out = array(NA, dim =c(n_sim, length(delta), 4),
+              dimnames = list(paste0('isim=',1:n_sim),
+                              paste0('delta=', delta),
+                              c('liver', 'textbook','log(d^2)','d^2')))
+  for(i_sim in 1:n_sim){
+    set.seed(i_sim)
+    for(i_delta in 1:length(delta)){
+      del = delta[i_delta]
+      mu = 0
+      #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
+      z = c(rnorm(n/8,1),rnorm(n*7/8,1)*(1+del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
