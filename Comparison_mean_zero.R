@@ -2,7 +2,7 @@
 ### The data. **AR included**
 ###-----------------------------------------------
 f = function(t){
-  5*cos(t*9) - (t - 0.7)^2 *20 + (t-0.2)^3 *40
+  5*cos(t*9) - (t - 0.7)^2 *10 + (t-0.2)^3 *20
 }
 ar = function(n, ar, df){
   z = rep(NA,n)
@@ -14,10 +14,17 @@ ar = function(n, ar, df){
 }
 n = 1000
 mu = f((1:n)/n)
-z = c(rt(n/2,3), rt(n/2, 3)) 
+z = c(rnorm(n/2,3), rnorm(n/2, 3)*3) 
 x = z+mu
 par(mfrow = c(1, 1))
 ts.plot(x)
+d = diff(x)/sqrt(2)
+d2 = d^2
+ts.plot(d)
+ts.plot(d2)
+abline(h = mean(d2[1:(n/2)]), col = 'red', lwd = 1.5)
+abline(h = mean(d2[(n/2+1):(n-1)]), col = 'blue', lwd = 1.5)
+
 
 ###----------------------------------
 ### Self Method
@@ -276,7 +283,7 @@ if(1){
       del = delta[i_delta]
       mu = 0
       #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      z = c(rnorm(n/8,1),rnorm(n*7/8,1)*(1+del))
+      z = c(rnorm(n*2/8,1),rnorm(n*6/8,1)*(1+del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
