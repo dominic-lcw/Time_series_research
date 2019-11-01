@@ -144,7 +144,7 @@ spline_test = function(x){
   return(Liver_test(new_d, 0.05))
 }
 ###-----------------------------------------------
-### Normal Case.
+### Normal Case. (Mid Point in the middle)
 ###-----------------------------------------------
 
 if(1){
@@ -272,7 +272,7 @@ abline(v = 0, lwd = 0.5, lty = 2)
 if(1){
   n = 400
   n_sim = 200
-  delta = seq(from = 0, to = 3, length.out = 21)
+  delta = seq(from = 0, to = 5, length.out = 21)
   out = array(NA, dim =c(n_sim, length(delta), 4),
               dimnames = list(paste0('isim=',1:n_sim),
                               paste0('delta=', delta),
@@ -283,7 +283,9 @@ if(1){
       del = delta[i_delta]
       mu = 0
       #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      z = c(rnorm(n*2/8,1),rnorm(n*6/8,1)*(1+del))
+      #z = c(rnorm(n*2/8,1),rnorm(n*7/8,1)*(1+del))
+      z = c(rexp(n*1/2, 1), rexp(n*1/2, 1)*(1+del))
+      #p1 = c(rbinom(n*1/8, 1, 0.5));p2 = c(rbinom(n*7/8, 1, 0.5));z = c(rnorm(n*1/8,-2)*p1+rnorm(n*1/8,2)*(1-p1),(rnorm(n*7/8,-2)*p2+rnorm(n*7/8,2)*(1-p2))*(1+del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
@@ -294,6 +296,17 @@ if(1){
     if(i_sim%%10==0) cat(i_sim, ' >> ')
   }
 }
+
+#Test of multinomial case
+del = 0.5
+n = 400
+p1 = c(rbinom(n*1/2, 1, 0.5))
+p2 = c(rbinom(n*1/2, 1, 0.5))
+z = c(rnorm(n*1/2,-2*p1+rnorm(n*1/2,10)*(1-p1),(rnorm(n*1/2,-10)*p2+rnorm(n*1/2,10)*(1-p2))*(1+del))
+ts.plot(z)
+par(mfrow = c(1,1))
+hist(z, breaks = 20)
+
 
 ###-----------------------------------------------------------
 ### Power
@@ -312,12 +325,12 @@ power
 par(mfrow = c(1, 2))
 col = c('blue','red', 'darkgreen','lightgreen')
 #Plot 1
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
+matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power", ylim = c(0, 100),
         ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
 legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
-  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.4)
+  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.6)
 
 #Plot 2
 matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
