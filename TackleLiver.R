@@ -91,16 +91,21 @@ n = 1000
 del = 1
 z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del)) #Normal Distributio
 z = c(rt(n/2,6), rt(n/2, 6)*(1+del)) #T-distribution
+z = c(rexp(n/2, 1), rexp(n/2, 1)*(1+del))
 
-
+#Bimodal Distribution
 p1 = c(rbinom(n*1/2, 1, 0.5))
 p2 = c(rbinom(n*1/2, 1, 0.5))
 z = c(rnorm(n*1/2,-10)*p1+rnorm(n*1/2,10)*(1-p1),
 	(rnorm(n*1/2,-10, (1+del))*p2+rnorm(n*1/2,10,(1+del))*(1-p2))) #Bimodal T-distribution
-z = c(rnorm(n*1/2,-2)*p1+rnorm(n*1/2,10)*(1-p1),
-	(rnorm(n*1/2,-10)*p2+rnorm(n*1/2,10)*(1-p2))*(1+del)) #Bimodal T-distribution
+
+z= c(rnorm(n/2,1),rnorm(n/4,1,(2+del)), rnorm(n/4,1,(4+del))) #Normal Distribution
 par(mfrow = c(1,1))
-hist(z, breaks = 100)
+ts.plot(z)
+
+par(mfrow = c(1,2))
+hist(z[1:n/2], breaks = 100)
+hist(z[n/2+1:n], breaks = 100)
 
 ###-----------------------------------------------
 ### Testing Normal Case
@@ -109,36 +114,54 @@ hist(z, breaks = 100)
 ###Input Parameter###
 n = 400
 n_sim = 200
-rd1 = rnorm(n/2, 1)
-  
-
 
 if(1){
-  delta = seq(from = 0, to = 1, length.out = 11)
-  out = array(NA, dim =c(n_sim, length(delta), 1),
-              dimnames = list(paste0('isim=',1:n_sim),
-                              paste0('delta=', delta),
-                              c('liver')))
-  for(i_sim in 1:n_sim){
-    set.seed(i_sim)
-    for(i_delta in 1:length(delta)){
-      del = delta[i_delta]
-      mu = 0
-      #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
-      x = z+mu
-      out[i_sim, i_delta, 1] = spline_test(x)
-    }
-    if(i_sim%%10==0) cat(i_sim, ' >> ')
-  }
+ 	delta = seq(from = 0, to = 1, length.out = 11)
+ 	out = array(NA, dim =c(n_sim, length(delta), 5),
+                dimnames = list(paste0('isim=',1:n_sim),
+                paste0('delta=', delta),c('Normal', 'Student-T', 'Exp', 'Bimodal', '2cp_norm')))
+    for(i_sim in 1:n_sim){
+        set.seed(i_sim)
+        for(i_delta in 1:length(delta)){
+            del = delta[i_delta]
+      		mu = 0
+			#Random Number
+			z_norm = c(rnorm(n/2,1),rnorm(n/2,1,(1+del))) #Normal Distribution
+			z_t = c(rt(n/2,6), rt(n/2, 6)*(1+del))# T-distribution
+			z_exp = c(rexp(n/2, 1)*1, rexp(n/2, 1)*(1+del)) #Exponential Distribution
+			z_bi = c(rnorm(n*1/2,-2,1)*p1+rnorm(n*1/2,10,1)*(1-p1),
+				(rnorm(n*1/2,-10,(1+del))*p2+rnorm(n*1/2,10,(1+del))*(1-p2))) #Bimodal T-distribution
+			z_norm = c(rnorm(n/2,1),rnorm(n/4,1)*(1+del), rnorm(n/4,1)*(4+del)) #Normal Distribution
+			z_2cp_norm= c(rnorm(n/2,1),rnorm(n/4,1,(2+del)), rnorm(n/4,1,(4+del))) #Multiple Change Point
+			
+			# #Time Series
+			x_norm = z_norm+mu
+			x_t = z_t + mu
+			x_exp = z_exp + mu
+			x_bi = z_bi + mu
+			x_2cp_norm = z_2cp_norm + mu
+			
+			# #Test Statistics
+			out[i_sim, i_delta, 1] = spline_test(x_norm)
+			out[i_sim, i_delta, 2] = spline_test(x_t)
+			out[i_sim, i_delta, 3] = spline_test(x_exp)
+			out[i_sim, i_delta, 4] = spline_test(x_bi)
+			out[i_sim, i_delta, 5] = spline_test(x_2cp_norm)
+		}
+    	if(i_sim%%10==0) cat(i_sim, ' >> ')
+  	}
 }
 
 ###-----------------------------------------------
 ### Result
 ###-----------------------------------------------
 out0 = out*0
-out0[,,1] = out[,,1] > 1.358
-power = apply(out0, 2, mean)
+out0[,,1] = out[,,1] > -log(-log(1-0.05)/2)
+out0[,,2] = out[,,2] > -log(-log(1-0.05)/2)
+out0[,,3] = out[,,3] > -log(-log(1-0.05)/2)
+out0[,,4] = out[,,4] > -log(-log(1-0.05)/2)
+out0[,,5] = out[,,5] > -log(-log(1-0.05)/2)
+power = apply(out0, c(2,3), mean)
 power
 
 ###-----------------------------------------------------------
@@ -146,24 +169,19 @@ power
 ###-----------------------------------------------------------
 par(mfrow = c(1, 2))
 #Plot 1
-matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), pch = 1, main = "Power", ylim = c(0, 100),
+matplot(delta, 100*power, type = 'b', col = 1:5, lty = c(1,2,3), pch = 1, main = "Power", ylim = c(0, 100),
         ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
-legend('bottomright', legend = c(paste0("m=",1:10)), 
-  col = 1:10, lty = c(1,2,3), cex = 0.4)
+legend('bottomright', legend = c('Normal', 'Student-T', 'Exp', 'Bimodal', 'Multi_cp'), 
+  col = 1:5, lty = c(1,2,3), cex = 0.7)
 
 #Plot 2
-matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), pch = 1, main = "Power (Zoom-in version)",
+matplot(delta, 100*power, type = 'b', col = 1:5, lty = c(1,2,3), pch = 1, main = "Power (Zoom-in version)",
         ylim = c(0, 0.3) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
         xlim = c(0, 0.2))
 abline(h = c(0:5), lwd = 0.5, lty = 3)
 abline(v = 0, lwd = 0.5, lty = 2)
-legend('bottomright', legend = c(paste0("m=",1:10)), 
-  col = 1:10, lty = c(1,2,3), cex = 0.4)
+legend('bottomright', legend = c('Normal', 'Student-T', 'Exp', 'Bimodal', 'Multi_cp'), 
+  col = 1:5, lty = c(1,2,3), cex = 0.4)
 
-
-
-a = rt
-
-a(1,1)

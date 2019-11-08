@@ -4,23 +4,39 @@
 f = function(t){
   5*cos(t*9) - (t - 0.7)^2 *10 + (t-0.2)^3 *20
 }
-ar = function(n, ar, df){
-  z = rep(NA,n)
-  z[1] = rt(1,df)
-  for(i in 2:n){
-    z[i] = ar*z[i-1] + rt(1,df)
+ar = function(n, th1, th2){ 
+  ar1 = rep(NA,n)
+  ar1[1] = rnorm(1)
+  ar1[2] = rnorm(1)
+  ar1[3] = rnorm(1)
+  for(i in 4:n){
+    ar1[i] = th1*ar1[i-1] -th2*ar1[i-3]  + rnorm(1,1)
   }
-  z
+  ar1
 }
+arma11 = function(n, th1, ph1){
+	wn = rnorm(n)
+	arma11  = rep(NA, n)
+	arma11[1] = wn[1]
+	for (i in 2:n){
+		arma11[i] = arma11[i-1]*th1 + wn[i-1]*ph1 + wn[i]
+	}
+	arma11
+}
+ts.plot(wn)
 n = 1000
+#a = ar(1000,0.8, 0.3)
+a = arma11(n, 0.8, 0.7)
 mu = f((1:n)/n)
 z = c(rnorm(n/2,1), rnorm(n/2, 1)*3) 
-x = z+mu
+x = z+mu+a
 par(mfrow = c(1, 1))
 ts.plot(x)
 
-
-diff_seq = function(diff, ts){
+###----------------------------------
+### Self Method
+###----------------------------------
+diff_seq = function(ts, diff){
 	d = rep(NULL, length(ts))
 	for (i in length(diff):length(ts)){
 		d[i] = as.numeric(ts[i:(i-length(diff)+1)]%*%diff)
@@ -29,13 +45,17 @@ diff_seq = function(diff, ts){
 }
 
 ds = c(1,-1)/sqrt(2)
-d1 = diff_seq(ds, x)
-d2 = d^2
-ts.plot(d)
+d1 = diff_seq(x, ds)
+d2 = d1^2
+ts.plot(d1)
 ts.plot(d2)
 abline(h = mean(d2[1:(n/2)]), col = 'red', lwd = 1.5)
 abline(h = mean(d2[(n/2+1):(n-1)]), col = 'blue', lwd = 1.5)
 
+d4 = d1^4
+ts.plot(d4)
+abline(h = mean(d4[1:(n/2)]), col = 'red', lwd = 1.5)
+abline(h = mean(d4[(n/2+1):(n-1)]), col = 'blue', lwd = 1.5)
 ###----------------------------------
 ### Self Method
 ###----------------------------------
@@ -83,8 +103,8 @@ m10 = c(0.1995, 0.0539, 0.0104, -0.0140, -0.0325, 0.8510, -0.2384, -0.2079, -0.1
 ###----------------------------------
 
 if(1){
-	n = 400
-	n_sim = 5000
+	n = 5000
+	n_sim = 200
 	order =10
 	delta = seq(from = 0, to = 1, length.out = 21)
 	out = array(NA, dim = c(n_sim, length(delta), order),
@@ -95,19 +115,21 @@ if(1){
 		set.seed(i_sim)
 		for(i_delta in 1:length(delta)){
 			del = delta[i_delta]
-			mu = 0
-			z = c(rnorm(n/2, 1), rnorm(n/2, 1)*(1+del))
-			x = z+mu
-			d1 = diff_seq(m1, x)^2
-			d2 = diff_seq(m2, x)^2
-			d3 = diff_seq(m3, x)^2
-			d4 = diff_seq(m4, x)^2
-			d5 = diff_seq(m5, x)^2
-			d6 = diff_seq(m6, x)^2
-			d7 = diff_seq(m7, x)^2
-			d8 = diff_seq(m8, x)^2
-			d9 = diff_seq(m9, x)^2
-			d10 = diff_seq(m10, x)^2
+			mu = f(1:n/n)
+			#a = ar(n, 0.7, 0.3)
+			a = arma11(n, 0.8, 0.7)
+			z = c(rnorm(n/2, 0,1), rnorm(n/2, 0, 1+del))
+			x = z+mu+a
+			d1 = diff_seq(x, m1)^2
+			d2 = diff_seq(x, m2)^2
+			d3 = diff_seq(x, m3)^2
+			d4 = diff_seq(x, m4)^2
+			d5 = diff_seq(x, m5)^2
+			d6 = diff_seq(x, m6)^2
+			d7 = diff_seq(x, m7)^2
+			d8 = diff_seq(x, m8)^2
+			d9 = diff_seq(x, m9)^2
+			d10 = diff_seq(x, m10)^2
 			out[i_sim, i_delta, 1] = KS_std(log(d1^2))
 			out[i_sim, i_delta, 2] = KS_std(log(d2^2))
 			out[i_sim, i_delta, 3] = KS_std(log(d3^2))
@@ -144,7 +166,7 @@ power
 ###-----------------------------------------------------------
 par(mfrow = c(1, 2))
 #Plot 1
-matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), pch = 1, main = "Power", ylim = c(0, 100),
+matplot(delta, 100*power[,c(1,2,3,5,7)], type = 'b', col = 1:10, lty = c(1,2,3), pch = "12359", main = "Power", ylim = c(0, 100),
         ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
@@ -152,7 +174,7 @@ legend('bottomright', legend = c(paste0("m=",1:10)),
   col = 1:10, lty = c(1,2,3), cex = 0.4)
 
 #Plot 2
-matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), pch = 1, main = "Power (Zoom-in version)",
+matplot(delta, 100*power[,c(1,2,3,5,9)], type = 'b', col = 1:10, lty = c(1,2,3), pch = "12359", main = "Power (Zoom-in version)",
         ylim = c(0, 0.3) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
         xlim = c(0, 0.2))
 abline(h = c(0:5), lwd = 0.5, lty = 3)
