@@ -58,6 +58,19 @@ KS_std_new = function(d){ #
   max(abs(Tn / sqrt(sigma_hat)))
 }
 
+k = k_split(d2);k
+two_sd = two_sigma(d, k);two_sd
+sd_seq = sqrt(c(rep(two_sd[1],k),rep(two_sd[2],(n-k))));sd_seq
+dd = d/sd_seq + sd_seq;ts.plot(dd)
+n = length(dd);n
+sigma_hat = var_head(dd, 2*n^(1/3));sigma_hat
+dd_bar = mean(dd)
+Tn =cumsum(dd - dd_bar) / sqrt(n);ts.plot(Tn)
+max(abs(Tn / sqrt(sigma_hat)))
+
+
+
+
 
 ###-------------------------------------
 ### Simulation
@@ -75,8 +88,8 @@ if(1){
     for(i_delta in 1:length(delta)){
       del = delta[i_delta]
       mu = 0
-      z = c(rt(n/2,6), rt(n/2, 6)*(1+del))#random
-      #z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
+      #z = c(rt(n/2,6), rt(n/2, 6)*(1+del))#random
+      z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = KS_std_new(d^2)
@@ -85,46 +98,22 @@ if(1){
   }
 }
 
-
-###-------------------------------------------------------
-### Plot 
-###-------------------------------------------------------
-mu = 0
-z = c(rt(n/2,6), rt(n/2, 6)*(1+del))#random
-#z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
-x = z+mu
-d = diff(x)/sqrt(2)
-par(mfrow = c(1,1))
-ts.plot(d^2)
-ts.plot(log(d^2))
-
 ###-----------------------------------------------------------
 ### Power
 ###-----------------------------------------------------------
 out0 = out*0
-out0[,,1] = out[,,1] > 1.398
-power = apply(out0, 2, mean, na.remove = True)
+out0[,,1] = out[,,1] > 1.358
+power = apply(out0, c(2,3), mean, na.rm = TRUE)
 power
-out
-###-----------------------------------------------------------
-### Plot results
-###-----------------------------------------------------------
+
+
+###-------------------------------------------------------
 par(mfrow = c(1, 2))
-col = c('blue','red', 'darkgreen')
+col = c('blue','red', 'darkgreen','lightgreen')
 #Plot 1
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
+matplot(delta, 100*power, type = 'b', col = col, pch = 1, main = "Power", ylim = c(0, 100),
         ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
-legend(0.7, 25, legend = c('X^2', 'Log(X^2)'), col = c('blue','red'), 
-       lty = c(1,2,3), cex = 0.6)
-
-#Plot 2
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
-        ylim = c(0, 0.5) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
-        xlim = c(0, 0.2))
-abline(h = c(0:5), lwd = 0.5, lty = 3)
-abline(v = 0, lwd = 0.5, lty = 2)
-
-
-
+legend('bottomright', legend = c('New Method'), 
+  col = c('blue'), lty = c(1,2,3), cex = 0.8)

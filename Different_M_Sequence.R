@@ -105,7 +105,7 @@ m10 = c(0.1995, 0.0539, 0.0104, -0.0140, -0.0325, 0.8510, -0.2384, -0.2079, -0.1
 if(1){
 	n = 5000
 	n_sim = 200
-	order =10
+	order =5
 	delta = seq(from = 0, to = 1, length.out = 21)
 	out = array(NA, dim = c(n_sim, length(delta), order),
 				dimnames = list(paste0('isim=', 1:n_sim),
@@ -119,31 +119,30 @@ if(1){
 			#a = ar(n, 0.7, 0.3)
 			a = arma11(n, 0.8, 0.7)
 			z = c(rnorm(n/2, 0,1), rnorm(n/2, 0, 1+del))
-			x = z+mu+a
-			d1 = diff_seq(x, m1)^2
-			d2 = diff_seq(x, m2)^2
-			d3 = diff_seq(x, m3)^2
-			d4 = diff_seq(x, m4)^2
-			d5 = diff_seq(x, m5)^2
-			d6 = diff_seq(x, m6)^2
-			d7 = diff_seq(x, m7)^2
-			d8 = diff_seq(x, m8)^2
-			d9 = diff_seq(x, m9)^2
-			d10 = diff_seq(x, m10)^2
+			#z = c(rexp(n/2, 1)*1, rexp(n/2, 1)*(1+del)) #Exponential Distribution
+			x = z+mu			
+			# x = z+mu+a
+			d1 = diff_seq(x, m1)
+			d2 = diff_seq(x, m2)
+			d3 = diff_seq(x, m3)
+			d5 = diff_seq(x, m5)
+			d9 = diff_seq(x, m9)
+			# d6 = diff_seq(x, m6)
+			# d7 = diff_seq(x, m7)
+			# d8 = diff_seq(x, m8)
+			# d9 = diff_seq(x, m9)
+			# d10 = diff_seq(x, m10)
 			out[i_sim, i_delta, 1] = KS_std(log(d1^2))
 			out[i_sim, i_delta, 2] = KS_std(log(d2^2))
 			out[i_sim, i_delta, 3] = KS_std(log(d3^2))
-			out[i_sim, i_delta, 4] = KS_std(log(d4^2))
-			out[i_sim, i_delta, 5] = KS_std(log(d5^2))
-			out[i_sim, i_delta, 6] = KS_std(log(d6^2))
-			out[i_sim, i_delta, 7] = KS_std(log(d7^2))
-			out[i_sim, i_delta, 8] = KS_std(log(d8^2))
-			out[i_sim, i_delta, 9] = KS_std(log(d9^2))
-			out[i_sim, i_delta, 10] = KS_std(log(d10^2))
+			out[i_sim, i_delta, 4] = KS_std(log(d5^2))
+			out[i_sim, i_delta, 5] = KS_std(log(d9^2))
+			
 		}
 		if(i_sim%%20==0) cat(i_sim, ' >> ')
 	}
 }
+
 ###-----------------------------------------------------------
 ### Power
 ###-----------------------------------------------------------
@@ -153,11 +152,6 @@ out0[,,2] = out[,,2] > 1.358
 out0[,,3] = out[,,3] > 1.358
 out0[,,4] = out[,,4] > 1.358
 out0[,,5] = out[,,5] > 1.358
-out0[,,6] = out[,,6] > 1.358
-out0[,,7] = out[,,7] > 1.358
-out0[,,8] = out[,,8] > 1.358
-out0[,,9] = out[,,9] > 1.358
-out0[,,10] = out[,,10] > 1.358
 power = apply(out0, c(2,3), mean)
 power
 
@@ -166,15 +160,16 @@ power
 ###-----------------------------------------------------------
 par(mfrow = c(1, 2))
 #Plot 1
-matplot(delta, 100*power[,c(1,2,3,5,7)], type = 'b', col = 1:10, lty = c(1,2,3), pch = "12359", main = "Power", ylim = c(0, 100),
-        ylab = expression(K(delta)~"/%"), xlab = expression(delta))
+matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), 
+	pch = "12359", main = "Power(n=5000)", ylim = c(0, 100),
+    ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
 legend('bottomright', legend = c(paste0("m=",1:10)), 
   col = 1:10, lty = c(1,2,3), cex = 0.4)
 
-#Plot 2
-matplot(delta, 100*power[,c(1,2,3,5,9)], type = 'b', col = 1:10, lty = c(1,2,3), pch = "12359", main = "Power (Zoom-in version)",
+#Local Power
+matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), pch = "12359", main = "Power (Zoom-in version)",
         ylim = c(0, 0.3) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
         xlim = c(0, 0.2))
 abline(h = c(0:5), lwd = 0.5, lty = 3)
@@ -182,7 +177,3 @@ abline(v = 0, lwd = 0.5, lty = 2)
 legend('bottomright', legend = c(paste0("m=",1:10)), 
   col = 1:10, lty = c(1,2,3), cex = 0.4)
 
-###-----------------------------------------------------------
-### Conclusion: 
-### M = 7 has more power
-###-----------------------------------------------------------
