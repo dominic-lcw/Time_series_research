@@ -27,7 +27,6 @@ ts.plot(x)
 kern = function(x){ #Bartlett kernel
   ifelse(abs(x)<=1,1-abs(x), 0)
 }
-
 var_head = function(x, l){ #Kernel Estimation of volatility
   n = length(x)
   l = floor(l)
@@ -37,7 +36,6 @@ var_head = function(x, l){ #Kernel Estimation of volatility
   out = sum(kern(k/l) * covar[abs(k) +1])
   return(out)
 }
-
 KS_std = function(x){ #
   n = length(x)
   x_bar = mean(x)

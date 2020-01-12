@@ -26,13 +26,13 @@ arma11 = function(n, th1, ph1){
 ts.plot(wn)
 n = 1000
 #a = ar(1000,0.8, 0.3)
-a = arma11(n, 0.8, 0.7)
+a = arma11(n, -0.8, -0.4)
 mu = f((1:n)/n)
 z = c(rnorm(n/2,1), rnorm(n/2, 1)*3) 
-x = z+mu+a
+x = z+a
 par(mfrow = c(1, 1))
 ts.plot(x)
-
+acf(x)
 ###----------------------------------
 ### Self Method
 ###----------------------------------
@@ -101,7 +101,7 @@ m10 = c(0.1995, 0.0539, 0.0104, -0.0140, -0.0325, 0.8510, -0.2384, -0.2079, -0.1
 ###----------------------------------
 ### Simulation of different differencing sequences
 ###----------------------------------
-
+acf(z+a)
 if(1){
 	n = 5000
 	n_sim = 200
@@ -117,10 +117,10 @@ if(1){
 			del = delta[i_delta]
 			mu = f(1:n/n)
 			#a = ar(n, 0.7, 0.3)
-			a = arma11(n, 0.8, 0.7)
+			a = arma11(n, -0.8, -0.4)
 			z = c(rnorm(n/2, 0,1), rnorm(n/2, 0, 1+del))
 			#z = c(rexp(n/2, 1)*1, rexp(n/2, 1)*(1+del)) #Exponential Distribution
-			x = z+mu			
+			x = z+a			
 			# x = z+mu+a
 			d1 = diff_seq(x, m1)
 			d2 = diff_seq(x, m2)
@@ -161,7 +161,7 @@ power
 par(mfrow = c(1, 2))
 #Plot 1
 matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), 
-	pch = "12359", main = "Power(n=5000)", ylim = c(0, 100),
+	pch = "12359", main = "Power", ylim = c(0, 100),
     ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
@@ -176,4 +176,63 @@ abline(h = c(0:5), lwd = 0.5, lty = 3)
 abline(v = 0, lwd = 0.5, lty = 2)
 legend('bottomright', legend = c(paste0("m=",1:10)), 
   col = 1:10, lty = c(1,2,3), cex = 0.4)
+
+
+###-----------------------------------------------------------
+### Plot results
+###-----------------------------------------------------------
+### +ve acf lag1
+n = 1000
+a = arma11(n, 0.8, -0.4)
+z = c(rnorm(n/2,1), rnorm(n/2, 1)*3) 
+x = z+a
+par(mfrow = c(1,1))
+ts.plot(x)
+acf(x)
+
+m1 = c(1, -1)
+d1 = diff_seq(x, m1)
+m2 = c(1, -2, 1)
+d2 = diff_seq(x, m2)
+
+par(mfrow = c(2, 1))
+ts.plot(d1)
+ts.plot(d2)
+var(d1)
+var(d2)
+
+### -ve acf lag1
+n = 1000
+a = arma11(n, -0.8, -0.4)
+z = c(rnorm(n/2,1), rnorm(n/2, 1)*3) 
+x = z+a
+par(mfrow = c(1,1))
+ts.plot(x)
+acf(x)
+
+m1 = c(1, -1)
+d1 = diff_seq(x, m1)
+m2 = c(1, -2, 1)
+d2 = diff_seq(x, m2)
+
+par(mfrow = c(2, 1))
+ts.plot(d1)
+ts.plot(d2)
+var(d1)
+var(d2)
+
+###Compare 
+sum(rexp(9, 1));rgamma(1, 9, 1)
+set.seed(111)
+hist(m1[1]*rnorm(1000) - m1[2]*rnorm(1000))
+hist(m2[1]*rnorm(1000) -m2[2]*rnorm(1000) + m2[3]*rnorm(1000))
+
+
+m1 = c(0.7071, -0.7071);sum(m1)
+m2 = c(0.8090, -0.5, -0.3090);sum(m2)
+
+
+sum(m1^2)
+sum(m2^2)
+
 

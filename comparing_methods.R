@@ -147,6 +147,7 @@ spline_test = function(x){
 ### Normal Case. (Mid Point in the middle)
 ###-----------------------------------------------
 
+del = 0.1
 if(1){
   n = 400
   n_sim = 200
@@ -159,9 +160,10 @@ if(1){
     set.seed(i_sim)
     for(i_delta in 1:length(delta)){
       del = delta[i_delta]
-      mu = 0
+      mu = f((1:n)/n)
+      z = c(rnorm(n/4, 0, 1), rnorm(n*3/4, 0, 1)*(1+del))
       #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      z = c(rnorm(n/2,1),rnorm(n/2,1)*(1+del))
+      # z = c(rnorm(n/4,1),rnorm(n/4,1)*(2+del), rnorm(n/2,1)*(7-del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
@@ -284,8 +286,8 @@ if(1){
       mu = 0
       #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
       #z = c(rnorm(n*2/8,1),rnorm(n*7/8,1)*(1+del))
-      z = c(rexp(n*1/2, 1), rexp(n*1/2, 1)*(1+del))
-      #p1 = c(rbinom(n*1/8, 1, 0.5));p2 = c(rbinom(n*7/8, 1, 0.5));z = c(rnorm(n*1/8,-2)*p1+rnorm(n*1/8,2)*(1-p1),(rnorm(n*7/8,-2)*p2+rnorm(n*7/8,2)*(1-p2))*(1+del))
+      # z = c(rexp(n*1/2, 1), rexp(n*1/2, 1)*(1+del))
+      p1 = c(rbinom(n*1/8, 1, 0.5));p2 = c(rbinom(n*7/8, 1, 0.5));z = c(rnorm(n*1/8,-2)*p1+rnorm(n*1/8,2)*(1-p1),(rnorm(n*7/8,-2)*p2+rnorm(n*7/8,2)*(1-p2))*(1+del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
@@ -304,8 +306,7 @@ p1 = c(rbinom(n*1/2, 1, 0.5))
 p2 = c(rbinom(n*1/2, 1, 0.5))
 z = c(rnorm(n*1/2,-2*p1+rnorm(n*1/2,10)*(1-p1),(rnorm(n*1/2,-10)*p2+rnorm(n*1/2,10)*(1-p2))*(1+del))
 ts.plot(z)
-par(mfrow = c(1,1))
-hist(z, breaks = 20)
+
 
 
 ###-----------------------------------------------------------
@@ -402,4 +403,3 @@ matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in
 abline(h = c(0:5), lwd = 0.5, lty = 3)
 abline(v = 0, lwd = 0.5, lty = 2)
 
-###
