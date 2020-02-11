@@ -23,39 +23,39 @@ arma11 = function(n, th1, ph1){
 	}
 	arma11
 }
-ts.plot(wn)
-n = 1000
+ma = function(n, ph1, p){
+  wn = rnorm(n)
+  ma  = rep(NA, n)
+  ma[1:p] = wn[1:p]
+  for (i in (p+1):n){
+    ma[i] = wn[(i-1):(i-p)]%*%ph1 + wn[i]
+  }
+  ma
+}
+n = 1600
 #a = ar(1000,0.8, 0.3)
 a = arma11(n, -0.8, -0.4)
 mu = f((1:n)/n)
-z = c(rnorm(n/2,1), rnorm(n/2, 1)*3) 
-x = z+a
+z = c(rnorm(n/2,1), rnorm(n/2, 1)*5) 
+x = z+mu+a
 par(mfrow = c(1, 1))
 ts.plot(x)
-acf(x)
+
 ###----------------------------------
 ### Self Method
 ###----------------------------------
-diff_seq = function(ts, diff){
+diff_seq = function(ts, diff, h){
 	d = rep(NULL, length(ts))
-	for (i in length(diff):length(ts)){
-		d[i] = as.numeric(ts[i:(i-length(diff)+1)]%*%diff)
+	m = length(diff)
+	for (i in (m*h):length(ts)){
+		d[i] = 0
+		for (j in 1:m){
+			d[i] = d[i] + ts[i-h*(j-1)]*diff[j]
+		}
 	}
 	return(na.omit(d))
 }
 
-ds = c(1,-1)/sqrt(2)
-d1 = diff_seq(x, ds)
-d2 = d1^2
-ts.plot(d1)
-ts.plot(d2)
-abline(h = mean(d2[1:(n/2)]), col = 'red', lwd = 1.5)
-abline(h = mean(d2[(n/2+1):(n-1)]), col = 'blue', lwd = 1.5)
-
-d4 = d1^4
-ts.plot(d4)
-abline(h = mean(d4[1:(n/2)]), col = 'red', lwd = 1.5)
-abline(h = mean(d4[(n/2+1):(n-1)]), col = 'blue', lwd = 1.5)
 ###----------------------------------
 ### Self Method
 ###----------------------------------
@@ -101,12 +101,29 @@ m10 = c(0.1995, 0.0539, 0.0104, -0.0140, -0.0325, 0.8510, -0.2384, -0.2079, -0.1
 ###----------------------------------
 ### Simulation of different differencing sequences
 ###----------------------------------
-acf(z+a)
+mean_func <- function(n){
+	x = f(1:n/n)
+	return(x)
+}
+
+arma_func <- function(n){
+	# a = ar(n, 0.7, 0.3)
+	# a = arma11(n, -0.5, 0.5)
+	a = ma(n, c(0.4,0.5,-0.6,-0.9,0,0,0,0.9), 8)
+	return(a)
+}
+
+res <- function(n, del){
+	z = c(rnorm(n/2, 0,1), rnorm(n/2, 0, 1+del))
+	#z = c(rexp(n/2, 1)*1, rexp(n/2, 1)*(1+del)) #Exponential Distribution
+	return(z)
+}
+
 if(1){
-	n = 5000
-	n_sim = 200
+	n = 400
+	n_sim = 2^9
 	order =5
-	delta = seq(from = 0, to = 1, length.out = 21)
+	delta = seq(from = 0, to = 2, length.out = 21)
 	out = array(NA, dim = c(n_sim, length(delta), order),
 				dimnames = list(paste0('isim=', 1:n_sim),
 								paste0('delta=', delta),
@@ -115,23 +132,16 @@ if(1){
 		set.seed(i_sim)
 		for(i_delta in 1:length(delta)){
 			del = delta[i_delta]
-			mu = f(1:n/n)
-			#a = ar(n, 0.7, 0.3)
-			a = arma11(n, -0.8, -0.4)
-			z = c(rnorm(n/2, 0,1), rnorm(n/2, 0, 1+del))
-			#z = c(rexp(n/2, 1)*1, rexp(n/2, 1)*(1+del)) #Exponential Distribution
-			x = z+a			
-			# x = z+mu+a
-			d1 = diff_seq(x, m1)
-			d2 = diff_seq(x, m2)
-			d3 = diff_seq(x, m3)
-			d5 = diff_seq(x, m5)
-			d9 = diff_seq(x, m9)
-			# d6 = diff_seq(x, m6)
-			# d7 = diff_seq(x, m7)
-			# d8 = diff_seq(x, m8)
-			# d9 = diff_seq(x, m9)
-			# d10 = diff_seq(x, m10)
+			mu = mean_func(n)
+			#a = arma_func(n)
+			z = res(n, del)
+			#x = z+mu+a
+			x = z+mu
+			d1 = diff_seq(x, m1,1)
+			d2 = diff_seq(x, m2,1)
+			d3 = diff_seq(x, m3,1)
+			d5 = diff_seq(x, m5,1)
+			d9 = diff_seq(x, m9,1)
 			out[i_sim, i_delta, 1] = KS_std(log(d1^2))
 			out[i_sim, i_delta, 2] = KS_std(log(d2^2))
 			out[i_sim, i_delta, 3] = KS_std(log(d3^2))
@@ -154,32 +164,21 @@ out0[,,4] = out[,,4] > 1.358
 out0[,,5] = out[,,5] > 1.358
 power = apply(out0, c(2,3), mean)
 power
-
 ###-----------------------------------------------------------
 ### Plot results
 ###-----------------------------------------------------------
-par(mfrow = c(1, 2))
+par(mfrow = c(1, 1))
 #Plot 1
 matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), 
-	pch = "12359", main = "Power", ylim = c(0, 100),
+	pch = "12359", main = "Power (added ARMA series)", ylim = c(0, 100),
     ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
-legend('bottomright', legend = c(paste0("m=",1:10)), 
-  col = 1:10, lty = c(1,2,3), cex = 0.4)
-
-#Local Power
-matplot(delta, 100*power, type = 'b', col = 1:10, lty = c(1,2,3), pch = "12359", main = "Power (Zoom-in version)",
-        ylim = c(0, 0.3) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
-        xlim = c(0, 0.2))
-abline(h = c(0:5), lwd = 0.5, lty = 3)
-abline(v = 0, lwd = 0.5, lty = 2)
-legend('bottomright', legend = c(paste0("m=",1:10)), 
-  col = 1:10, lty = c(1,2,3), cex = 0.4)
-
+# legend('bottomright', legend = c(paste0("m=",c(1,)), 
+#   col = 1:10, lty = c(1,2,3), cex = 0.4)
 
 ###-----------------------------------------------------------
-### Plot results
+### Free Space
 ###-----------------------------------------------------------
 ### +ve acf lag1
 n = 1000
@@ -234,5 +233,23 @@ m2 = c(0.8090, -0.5, -0.3090);sum(m2)
 
 sum(m1^2)
 sum(m2^2)
+
+
+###Diff 18
+n = length(x)
+x_bar = mean(x)
+sigma_hat = var_head(x, 2*n^(1/3))
+Tn =cumsum(x - x_bar) / sqrt(n)
+TS = max(abs(Tn / sqrt(sigma_hat)))
+ts.plot(d18)
+
+x = log(d18^2)
+ts.plot(Tn)
+
+TS
+
+ts.plot(x)
+
+
 
 

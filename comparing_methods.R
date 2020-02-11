@@ -4,13 +4,14 @@
 f = function(t){
   5*cos(t*9) - (t - 0.7)^2 *10 + (t-0.2)^3 *20
 }
-ar = function(n, ar, df){
-  z = rep(NA,n)
-  z[1] = rt(1,df)
-  for(i in 2:n){
-    z[i] = ar*z[i-1] + rt(1,df)
+ma = function(n, ph1, p){
+  wn = rnorm(n)
+  ma  = rep(NA, n)
+  ma[1:p] = wn[1:p]
+  for (i in (p+1):n){
+    ma[i] = wn[(i-1):(i-p)]%*%ph1 + wn[i]
   }
-  z
+  ma
 }
 n = 1000
 mu = f((1:n)/n)
@@ -51,6 +52,31 @@ KS_std = function(x){ #
   Tn =cumsum(x - x_bar) / sqrt(n)
   TS = max(abs(Tn / sqrt(sigma_hat)))
 }
+
+
+###----------------------------------
+### Self Normalization
+###----------------------------------
+
+KS_sn = function(x){
+  n = length(x)
+  x_bar = mean(x)
+  Tn =cumsum(x - x_bar) / sqrt(n)
+  V = rep(NA, n-1)
+  
+  s = cumsum(x)
+  rs =  rev(cumsum(rev(x))) #sum backward
+  
+  for (k in 1:(n-1)){
+    t = 1:k
+    rt = (k+1):n
+    V[k] = sum((s[t] - (t/k) * s[k]) ^2) + sum((rs[rt] - (n-rt+1) / (n-k) * rs[k+1])^2)
+    #V[k] = (sum((s[t] - (t/k)*s[k])^2) + sum((rs[rt] - (n-rt+1)/(n-k) * rs[k+1])^2))
+  }
+  V = V/n^2
+  TS = max(abs(Tn[-n]^2 / V))
+}
+
 
 ###-----------------------------------------------
 ### Textbook method
@@ -143,68 +169,34 @@ spline_test = function(x){
   }
   return(Liver_test(new_d, 0.05))
 }
-###-----------------------------------------------
-### Normal Case. (Mid Point in the middle)
-###-----------------------------------------------
 
-del = 0.1
-if(1){
-  n = 400
-  n_sim = 200
-  delta = seq(from = 0, to = 3, length.out = 21)
-  out = array(NA, dim =c(n_sim, length(delta), 4),
-              dimnames = list(paste0('isim=',1:n_sim),
-                              paste0('delta=', delta),
-                              c('liver', 'textbook','log(d^2)','d^2')))
-  for(i_sim in 1:n_sim){
-    set.seed(i_sim)
-    for(i_delta in 1:length(delta)){
-      del = delta[i_delta]
-      mu = f((1:n)/n)
-      z = c(rnorm(n/4, 0, 1), rnorm(n*3/4, 0, 1)*(1+del))
-      #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      # z = c(rnorm(n/4,1),rnorm(n/4,1)*(2+del), rnorm(n/2,1)*(7-del))
-      x = z+mu
-      d = diff(x)/sqrt(2)
-      out[i_sim, i_delta, 1] = spline_test(x)
-      out[i_sim, i_delta, 2] = textbook(x)
-      out[i_sim, i_delta, 3] = KS_std(log(d^2))
-      out[i_sim, i_delta, 4] = KS_std(d^2)
-    }
-    if(i_sim%%10==0) cat(i_sim, ' >> ')
-  }
+###----------------------------------
+### Self Method
+###----------------------------------
+
+kern = function(x){ #Bartlett kernel
+  ifelse(abs(x)<=1,1-abs(x), 0)
 }
 
-###-----------------------------------------------------------
-### Power
-###-----------------------------------------------------------
-out0 = out*0
-out0[,,1] = out[,,1] > -log(-log(1-0.05)/2)
-out0[,,2] = out[,,2] > 1.358
-out0[,,3] = out[,,3] > 1.358
-out0[,,4] = out[,,4] > 1.358
-power = apply(out0, c(2,3), mean)
-power
+var_head = function(x, l){ #Kernel Estimation of volatility
+  n = length(x)
+  l = floor(l)
+  sum = 0
+  covar = c(acf(x, l+1, type = 'cov', plot=FALSE)$acf)
+  k = (-l):l
+  out = sum(kern(k/l) * covar[abs(k) +1])
+  return(out)
+}
 
-###-----------------------------------------------------------
-### Plot results
-###-----------------------------------------------------------
-par(mfrow = c(1, 2))
-col = c('blue','red', 'darkgreen','lightgreen')
-#Plot 1
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
-        ylab = expression(K(delta)~"/%"), xlab = expression(delta))
-abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
-abline(v = 0, lwd = 0.5, lty = 2)
-legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
-  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.4)
+KS_std = function(x){ #
+  n = length(x)
+  x_bar = mean(x)
+  sigma_hat = var_head(x, 2*n^(1/3))
+  Tn =cumsum(x - x_bar) / sqrt(n)
+  TS = max(abs(Tn / sqrt(sigma_hat)))
+}
 
-#Plot 2
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
-        ylim = c(0, 0.5) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
-        xlim = c(0, 0.2))
-abline(h = c(0:5), lwd = 0.5, lty = 3)
-abline(v = 0, lwd = 0.5, lty = 2)
+
 
 ###-----------------------------------------------
 ### Changing Mean
@@ -253,19 +245,118 @@ power
 par(mfrow = c(1, 2))
 col = c('blue','red', 'darkgreen','lightgreen')
 #Plot 1
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (n_sim=1000, n=500)", ylim = c(0, 100),
+matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "IID Normal", ylim = c(0, 100),
         ylab = expression(K(delta)~"/%"), xlab = expression(delta))
 abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
 legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
   col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.4)
 
-#Plot 2
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
-        ylim = c(0, 0.5) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
-        xlim = c(0, 0.2))
-abline(h = c(0:5), lwd = 0.5, lty = 3)
+###-----------------------------------------------
+### IID, MA(2), MA(8)
+###-----------------------------------------------
+
+if(1){
+  n = 400
+  n_sim = 200
+  delta = seq(from = 0, to = 5, length.out = 21)
+  out1 = array(NA, dim =c(n_sim, length(delta), 4),
+              dimnames = list(paste0('isim=',1:n_sim),
+                              paste0('delta=', delta),
+                              c('liver', 'textbook','log(d^2)','d^2')))
+  out2 = array(NA, dim =c(n_sim, length(delta), 4),
+            dimnames = list(paste0('isim=',1:n_sim),
+                            paste0('delta=', delta),
+                            c('liver', 'textbook','log(d^2)','d^2')))
+  out3 = array(NA, dim =c(n_sim, length(delta), 4),
+            dimnames = list(paste0('isim=',1:n_sim),
+                            paste0('delta=', delta),
+                            c('liver', 'textbook','log(d^2)','d^2')))
+  for(i_sim in 1:n_sim){
+    set.seed(i_sim)
+    for(i_delta in 1:length(delta)){
+      del = delta[i_delta]
+      mu = f(1:n/n)
+      a8 = ma(n, c(0.4,0.5,-0.6,-0.9,0,0,0,0.9), 8)
+      a2 = ma(n, c(0.4,-0.5), 2)
+      z = c(rnorm(n*1/2,1),rnorm(n*1/2,1)*(1+del))
+      x1 = z+mu
+      x2 = z+mu+a2
+      x3 = z+mu+a8
+      #First test
+      d1 = diff(x1)/sqrt(2)
+      out1[i_sim, i_delta, 1] = spline_test(x1)
+      out1[i_sim, i_delta, 2] = textbook(x1)
+      out1[i_sim, i_delta, 3] = KS_std(log(d1^2))
+      out1[i_sim, i_delta, 4] = KS_std(d1^2)
+
+      d2 = diff(x2)/sqrt(2)
+      out2[i_sim, i_delta, 1] = spline_test(x2)
+      out2[i_sim, i_delta, 2] = textbook(x2)
+      out2[i_sim, i_delta, 3] = KS_std(log(d2^2))
+      out2[i_sim, i_delta, 4] = KS_std(d2^2)
+
+      d3 = diff(x3)/sqrt(2)
+      out3[i_sim, i_delta, 1] = spline_test(x3)
+      out3[i_sim, i_delta, 2] = textbook(x3)
+      out3[i_sim, i_delta, 3] = KS_std(log(d3^2))
+      out3[i_sim, i_delta, 4] = KS_std(d3^2)
+
+    }
+    if(i_sim%%10==0) cat(i_sim, ' >> ')
+  }
+}
+
+###-----------------------------------------------------------
+### Power
+###-----------------------------------------------------------
+out01 = out1*0
+out01[,,1] = out1[,,1] > -log(-log(1-0.05)/2)
+out01[,,2] = out1[,,2] > 1.358
+out01[,,3] = out1[,,3] > 1.358
+out01[,,4] = out1[,,4] > 1.358
+power1 = apply(out01, c(2,3), mean)
+
+out02 = out2*0
+out02[,,1] = out2[,,1] > -log(-log(1-0.05)/2)
+out02[,,2] = out2[,,2] > 1.358
+out02[,,3] = out2[,,3] > 1.358
+out02[,,4] = out2[,,4] > 1.358
+power2 = apply(out02, c(2,3), mean)
+
+out03 = out3*0
+out03[,,1] = out3[,,1] > -log(-log(1-0.05)/2)
+out03[,,2] = out3[,,2] > 1.358
+out03[,,3] = out3[,,3] > 1.358
+out0[,,4] = out3[,,4] > 1.358
+power3 = apply(out03, c(2,3), mean)
+
+###-----------------------------------------------------------
+### Plot results
+###-----------------------------------------------------------
+par(mfrow = c(1, 2))
+col = c('blue','red', 'darkgreen','lightgreen')
+#Plot 1
+matplot(delta, 100*power1, type = 'l', col = col, lwd = 2, main = "Normal", ylim = c(0, 100),
+        ylab = expression(K(delta)~"/%"), xlab = expression(delta))
+abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
+legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
+  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.6)
+
+matplot(delta, 100*power2, type = 'l', col = col, lwd = 2, main = "MA(2)", ylim = c(0, 100),
+        ylab = expression(K(delta)~"/%"), xlab = expression(delta))
+abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
+abline(v = 0, lwd = 0.5, lty = 2)
+legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
+  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.6)
+
+matplot(delta, 100*power3, type = 'l', col = col, lwd = 2, main = "MA(8)", ylim = c(0, 100),
+        ylab = expression(K(delta)~"/%"), xlab = expression(delta))
+abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
+abline(v = 0, lwd = 0.5, lty = 2)
+legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
+  col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.6)
 
 ###-----------------------------------------------
 ### Early Change Point
@@ -283,11 +374,11 @@ if(1){
     set.seed(i_sim)
     for(i_delta in 1:length(delta)){
       del = delta[i_delta]
-      mu = 0
+      mu = f(1:n/n)
       #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      #z = c(rnorm(n*2/8,1),rnorm(n*7/8,1)*(1+del))
+      z = c(rnorm(n*1/5,1),rnorm(n*4/5,1)*(1+del))
       # z = c(rexp(n*1/2, 1), rexp(n*1/2, 1)*(1+del))
-      p1 = c(rbinom(n*1/8, 1, 0.5));p2 = c(rbinom(n*7/8, 1, 0.5));z = c(rnorm(n*1/8,-2)*p1+rnorm(n*1/8,2)*(1-p1),(rnorm(n*7/8,-2)*p2+rnorm(n*7/8,2)*(1-p2))*(1+del))
+      # p1 = c(rbinom(n*1/8, 1, 0.5));p2 = c(rbinom(n*7/8, 1, 0.5));z = c(rnorm(n*1/8,-2)*p1+rnorm(n*1/8,2)*(1-p1),(rnorm(n*7/8,-2)*p2+rnorm(n*7/8,2)*(1-p2))*(1+del))
       x = z+mu
       d = diff(x)/sqrt(2)
       out[i_sim, i_delta, 1] = spline_test(x)
@@ -332,69 +423,6 @@ abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
 abline(v = 0, lwd = 0.5, lty = 2)
 legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)','d^2'), 
   col = c('blue','red','darkgreen','lightgreen'), lty = c(1,2,3), cex = 0.6)
-
-#Plot 2
-matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
-        ylim = c(0, 0.5) *100, ylab = expression(K(delta)~"/%"), xlab = expression(delta),
-        xlim = c(0, 0.2))
-abline(h = c(0:5), lwd = 0.5, lty = 3)
-abline(v = 0, lwd = 0.5, lty = 2)
-
-###-----------------------------------------------
-### Early Change Point
-###-----------------------------------------------
-
-if(1){
-  n = 400
-  n_sim = 200
-  delta = seq(from = 0, to = 1, length.out = 21)
-  out = array(NA, dim =c(n_sim, length(delta), 3),
-              dimnames = list(paste0('isim=',1:n_sim),
-                              paste0('delta=', delta),
-                              c('liver', 'textbook','log(d^2)')))
-  for(i_sim in 1:n_sim){
-    set.seed(i_sim)
-    for(i_delta in 1:length(delta)){
-      del = delta[i_delta]
-      mu = 0
-      #z = c(r(n/2,6), rt(n/2, 6)*(1+del))#random
-      #z = c(rnorm(n*2/8,1),rnorm(n*7/8,1)*(1+del))
-      #z = c(rexp(n*1/2, 1), rexp(n*1/2, 1)*(1+del))
-      z_bi = c(rnorm(n*1/2,-2,1)*p1+rnorm(n*1/2,10,1)*(1-p1),
-      (rnorm(n*1/2,-10,(1+del))*p2+rnorm(n*1/2,10,(1+del))*(1-p2))) #Bimodal T-distribution
-      x = z+mu
-      d = diff(x)/sqrt(2)
-      out[i_sim, i_delta, 1] = spline_test(x)
-      out[i_sim, i_delta, 2] = textbook(x)
-      out[i_sim, i_delta, 3] = KS_std(log(d^2))
-    }
-    if(i_sim%%10==0) cat(i_sim, ' >> ')
-  }
-}
-
-###-----------------------------------------------------------
-### Power
-###-----------------------------------------------------------
-out0 = out*0
-out0[,,1] = out[,,1] > -log(-log(1-0.05)/2)
-out0[,,2] = out[,,2] > 1.358
-out0[,,3] = out[,,3] > 1.358
-power = apply(out0, c(2,3), mean)
-power
-
-###-----------------------------------------------------------
-### Plot results
-###-----------------------------------------------------------
-par(mfrow = c(1, 2))
-col = c('blue','red', 'darkgreen')
-#Plot 1
-matplot(delta, 100*power, type = 'b', col = col, pch= 1, lty = c(1,2,3),
-     main = "Power", ylim = c(0, 100), ylab = expression(K(delta)~"/%"), 
-     xlab = expression(delta))
-abline(h  = c(0.05, 0, 1)*100, lwd = 0.5, lty = 2)
-abline(v = 0, lwd = 0.5, lty = 2)
-legend('bottomright', legend = c('Liver', 'Textbook','log(d^2)'), 
-  col = c('blue','red','darkgreen'), lty = c(1,2,3), cex = 0.6)
 
 #Plot 2
 matplot(delta, 100*power, type = 'l', col = col, lwd = 2, main = "Power (Zoom-in version)",
