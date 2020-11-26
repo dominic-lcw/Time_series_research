@@ -1,2 +1,2 @@
-# Time_series_research
-Codes written for research in Time Series
+# Change point test
+Coded methods appeared in literatures
